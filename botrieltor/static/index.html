@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="app-token" content="__APP_TOKEN__">
+  <title>BotRieltor · Автопубликация Zalo ➔ Telegram</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="app-layout">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">B.</span>
+        <div>
+          <strong>BotRieltor</strong>
+          <span class="muted">· Автоматическая публикация в Telegram</span>
+        </div>
+      </div>
+      <div class="runtime-badge">
+        <span class="pulse-dot"></span>
+        <span id="runtime-status">Автоматический сбор активен · GINSENG</span>
+      </div>
+    </header>
+
+    <div id="notice" role="status" aria-live="polite" hidden></div>
+
+    <main class="dashboard">
+      <section class="cards-grid">
+        <!-- Zalo Card -->
+        <article class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="card-icon">💬</span>
+              <div>
+                <h3>Zalo</h3>
+                <p class="muted" id="zalo-status-text">Проверка подключения…</p>
+              </div>
+            </div>
+            <span class="badge" id="zalo-badge">…</span>
+          </div>
+          <div class="card-body">
+            <p>Источник сбора: <strong id="zalo-group-name">группа GINSENG</strong></p>
+            <p class="small-muted">Отправьте в GINSENG фотографии и текст объявления в любом порядке. Бот свяжет их автоматически.</p>
+          </div>
+          <div class="card-footer">
+            <button class="button small" id="zalo-open-btn" data-open-zalo>Открыть профиль Zalo приложения</button>
+          </div>
+        </article>
+
+        <!-- AI / OmniRoute Card -->
+        <article class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="card-icon">⚡</span>
+              <div>
+                <h3>Нейросеть (OmniRoute)</h3>
+                <p class="muted" id="ai-status-text">Проверка подключения…</p>
+              </div>
+            </div>
+            <span class="badge" id="ai-badge">…</span>
+          </div>
+          <div class="card-body">
+            <p>Модель: <strong id="ai-model-name">gemini-3.7-flash-tiered</strong></p>
+            <p class="small-muted">Сопоставляет фотографии и описание, проверяет объект перед автоматической публикацией.</p>
+          </div>
+          <div class="card-footer">
+            <button class="button small" id="ai-configure-btn">Настроить ИИ</button>
+          </div>
+        </article>
+
+        <!-- Telegram Card -->
+        <article class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="card-icon">✈️</span>
+              <div>
+                <h3>Telegram Канал</h3>
+                <p class="muted" id="tg-status-text">Проверка подключения…</p>
+              </div>
+            </div>
+            <span class="badge" id="tg-badge">…</span>
+          </div>
+          <div class="card-body">
+            <p>Канал: <strong id="tg-channel-name">—</strong></p>
+            <p class="small-muted">Публикует цельную медиагруппу (до 10 фото + описание в подписи).</p>
+            <p class="posting-state" id="telegram-posting-state">Автопубликация выключена</p>
+          </div>
+          <div class="card-footer">
+            <button class="button small" id="telegram-posting-toggle" type="button" aria-pressed="false">Включить публикации</button>
+            <button class="button small" id="tg-configure-btn">Настройки и шаблон</button>
+          </div>
+        </article>
+      </section>
+
+      <!-- Live Publications Feed -->
+      <section class="feed-section">
+        <div class="section-header">
+          <div>
+          <h2>Объявления в базе</h2>
+            <p class="muted">Новые объявления поступают из GINSENG и автоматически публикуются в подключённый Telegram-канал по шаблону.</p>
+          </div>
+          <div class="feed-stats">
+            <span>Всего объектов: <strong id="total-published">0</strong></span>
+            <button class="button small danger" id="clear-all-listings-btn">Очистить базу объявлений</button>
+          </div>
+        </div>
+
+        <div id="feed-container" class="feed-list">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- OmniRoute Config Dialog -->
+  <dialog id="omniroute-dialog" class="wide-dialog">
+    <form id="omniroute-form">
+      <div class="dialog-heading">
+        <h2>Настройки нейросети (OmniRoute)</h2>
+        <button type="button" class="icon-button" data-close="omniroute-dialog" aria-label="Закрыть">×</button>
+      </div>
+      <label>URL сервера OmniRoute
+        <input name="base_url" required value="http://127.0.0.1:20128" placeholder="http://127.0.0.1:20128">
+      </label>
+      <label>API-ключ
+        <input name="api_key" type="password" autocomplete="new-password" placeholder="Вставьте API-ключ (сохраняется локально)">
+      </label>
+      <label>Модель
+        <input name="model" list="omniroute-models" placeholder="agy/gemini-3.7-flash-tiered" value="agy/gemini-3.7-flash-tiered">
+        <datalist id="omniroute-models"></datalist>
+      </label>
+      <p class="muted">Ключ хранится локально. В Windows он шифруется для вашей учётной записи.</p>
+      <p class="form-error" role="alert"></p>
+      <div class="dialog-actions">
+        <button type="button" class="button" data-close="omniroute-dialog">Отмена</button>
+        <button class="button primary" type="submit">Сохранить</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Telegram Config Dialog -->
+  <dialog id="telegram-dialog" class="wide-dialog">
+    <form id="telegram-form">
+      <div class="dialog-heading">
+        <h2>Настройки Telegram</h2>
+        <button type="button" class="icon-button" data-close="telegram-dialog" aria-label="Закрыть">×</button>
+      </div>
+      <label>ID или @username канала
+        <input name="channel_id" required placeholder="-1003945781703 или @channel">
+      </label>
+      <label>Токен Telegram-бота
+        <input name="token" type="password" autocomplete="new-password" placeholder="Вставьте токен от @BotFather">
+      </label>
+      <p class="muted">Формат объявления фиксированный и собирается автоматически из данных объявления.</p>
+      <p class="form-error" role="alert"></p>
+      <div class="dialog-actions">
+        <button type="button" class="button" data-close="telegram-dialog">Отмена</button>
+        <button class="button primary" type="submit">Сохранить</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="photo-preview-dialog" class="photo-preview-dialog" aria-label="Просмотр фотографии">
+    <div class="photo-preview-toolbar">
+      <span id="photo-preview-dimensions"></span>
+      <button type="button" class="button small" id="photo-preview-scale" aria-pressed="false">1:1</button>
+      <button type="button" class="icon-button" data-close="photo-preview-dialog" aria-label="Закрыть">×</button>
+    </div>
+    <img id="photo-preview-image" alt="Оригинал фотографии объявления">
+  </dialog>
+</body>
+</html>
